@@ -1,20 +1,20 @@
-import Head from 'next/head'
-import { getVideos } from 'lib/data.js'
-import prisma from 'lib/prisma'
-import Videos from 'components/Videos'
-import Heading from 'components/Heading'
-import LoadMore from 'components/LoadMore'
 import { useState } from 'react'
-import { amount } from 'lib/config'
+import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { useSession } from 'next-auth/react'
+import { useSession, getSession } from 'next-auth/react'
+import prisma from 'lib/prisma'
+import { getVideos } from 'lib/data.js'
+import { amount } from 'lib/config'
+import Videos from 'components/Videos'
+import LoadMore from 'components/LoadMore'
+import Heading from 'components/Heading'
 
-
-export default function Home({ initialvideos }) {
-  const [videos, setVideos] = useState(initialVideoos)
-  const [reachedEnd, setReachedEnd] = useState(initialVideos.length < amount)
+export default function Subscriptions({ initialVideos }) {
   const { data: session, status } = useSession()
-  const router = useRouter()  
+  const router = useRouter()
+
+  const [videos, setVideos] = useState(initialVideos)
+  const [reachedEnd, setReachedEnd] = useState(initialVideos.length < amount)
 
   const loading = status === 'loading'
 
@@ -26,7 +26,6 @@ export default function Home({ initialvideos }) {
     router.push('/setup')
   }
 
-
   return (
     <div>
       <Head>
@@ -35,31 +34,25 @@ export default function Home({ initialvideos }) {
         <link rel='icon' href='/favicon.ico' />
       </Head>
       <Heading />
-      <header className='h-14 flex pt-5 px-5 pb-2'>
-        <div className='text-xl'>
-          <p>YouTube clone</p>
-        </div>
 
-        <div className='grow'></div>
-      </header>
-
-      {videos.length === 0 && (
-        <p className='flex justify-center mt-20'>No videos found!</p>
-      )}
       <Videos videos={videos} />
+
       {!reachedEnd && (
         <LoadMore
           videos={videos}
           setVideos={setVideos}
           setReachedEnd={setReachedEnd}
+          subscriptions={session.user.id}
         />
       )}
-    </div> 
-     )
+    </div>
+  )
 }
 
-export async function getServerSideProps() {
-  let videos = await getVideos({}, prisma)
+export async function getServerSideProps(context) {
+  const session = await getSession(context)
+
+	let videos = await getVideos({ subscriptions: session.user.id }, prisma) 
 	videos = JSON.parse(JSON.stringify(videos))
 
   return {
